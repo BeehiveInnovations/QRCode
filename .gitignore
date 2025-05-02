@@ -11,3 +11,4 @@ contents.xcworkspacedata
 Demo/Cocoapods Test/Pods
 sanitybuild
 ._package.xcworkspace
+.DerivedData.noindex/

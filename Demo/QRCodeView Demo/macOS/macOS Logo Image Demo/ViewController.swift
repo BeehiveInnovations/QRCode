@@ -121,6 +121,77 @@ class ViewController: NSViewController {
 			let ssss2 = try! doc.pdfData(dimension: 512)
 			try! ssss2.write(to: URL(string: "file:///tmp/logotype3.pdf")!)
 		}
+    
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+      self?.setupVCardQRCode()
+    }
 	}
+  
+  func setupVCardQRCode() {
+    // Create a simple vCard
+    let vCardString = """
+    BEGIN:VCARD
+    VERSION:3.0
+    N:Doe;John;;;
+    FN:John Doe
+    ORG:BusyContacts Inc.
+    TITLE:Software Engineer
+    TEL;TYPE=CELL:+1-555-123-4567
+    EMAIL:john.doe@example.com
+    ADR;TYPE=WORK:;;123 Business St;San Francisco;CA;94107;USA
+    URL:https://busymac.com
+    END:VCARD
+    """
+    
+    do {
+      // Create QR code document from vCard string
+      let doc = try QRCode.Document(utf8String: vCardString, errorCorrection: .high)
+      
+      // Customize appearance
+      doc.design.backgroundColor(CGColor(red: 0.95, green: 0.95, blue: 0.95, alpha: 1.0))
+      
+      // Set pixel shape (rounded squares)
+      doc.design.shape.onPixels = QRCode.PixelShape.RoundedPath(cornerRadiusFraction: 0.8)
+      
+      // Main QR color
+      doc.design.style.onPixels = QRCode.FillStyle.Solid(0.15, 0.15, 0.58, alpha: 1.0)
+      
+      // Eye styling
+      doc.design.shape.eye = QRCode.EyeShape.RoundedOuter()
+      doc.design.style.eye = QRCode.FillStyle.Solid(0.15, 0.15, 0.58, alpha: 1.0)
+      doc.design.style.pupil = QRCode.FillStyle.Solid(0.15, 0.15, 0.58, alpha: 1.0)
+      
+      // Optional: Add a contact photo as logo
+      if let contactImage = NSImage(named: "logo") {
+        // Create circular mask for the image
+        doc.logoTemplate = QRCode.LogoTemplate(
+          image: contactImage.cgImage(forProposedRect: nil, context: nil, hints: nil)!,
+          path: CGPath(ellipseIn: CGRect(x: 0.35, y: 0.35, width: 0.3, height: 0.3), transform: nil),
+          inset: 8
+        )
+      }
+      
+      // Assign to the QR code view
+      qrcodeView3.document = doc
+      
+      // Optionally export to file
+      let svgData = try doc.svg(dimension: 512)
+      try svgData.write(to: URL(string: "file:///tmp/vcard_qrcode.svg")!, atomically: true, encoding: .utf8)
+      
+      let pdfData = try doc.pdfData(dimension: 512)
+      try pdfData.write(to: URL(string: "file:///tmp/vcard_qrcode.pdf")!)
+      
+      // For easy testing with a phone, also save as PNG
+      if let cgImage = try? doc.cgImage(CGSize(width: 512, height: 512)) {
+        let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
+        if let pngData = bitmapRep.representation(using: .png, properties: [:]) {
+          try pngData.write(to: URL(string: "file:///tmp/vcard_qrcode.png")!)
+        }
+      }
+    }
+    catch {
+      print("Error generating vCard QR code: \(error)")
+    }
+  }
 }
 

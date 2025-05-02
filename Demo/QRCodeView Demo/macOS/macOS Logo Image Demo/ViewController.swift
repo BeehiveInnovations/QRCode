@@ -122,8 +122,12 @@ class ViewController: NSViewController {
 			try! ssss2.write(to: URL(string: "file:///tmp/logotype3.pdf")!)
 		}
     
-    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
       self?.setupVCardQRCode()
+    }
+    
+    DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+      self?.setupCalendarEventQRCode()
     }
 	}
   
@@ -191,6 +195,128 @@ class ViewController: NSViewController {
     }
     catch {
       print("Error generating vCard QR code: \(error)")
+    }
+  }
+  
+  func setupCalendarEventQRCode() {
+    // Get the current date for use in the event
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime]
+    
+    let now = Date()
+    let calendar = Calendar.current
+    
+    // Create start time (next Monday at 10:00 AM)
+    var startDateComponents = calendar.dateComponents([.year, .month, .day], from: now)
+    let currentWeekday = calendar.component(.weekday, from: now)
+    let daysToAdd = (9 - currentWeekday) % 7 // Calculate days until next Monday (weekday 2)
+    startDateComponents.day! += daysToAdd
+    startDateComponents.hour = 10
+    startDateComponents.minute = 0
+    startDateComponents.second = 0
+    
+    let startDate = calendar.date(from: startDateComponents)!
+    
+    // Create end time (1 hour later)
+    let endDate = calendar.date(byAdding: .hour, value: 1, to: startDate)!
+    
+    // Format the dates
+    let startDateString = dateFormatter.string(from: startDate)
+    let endDateString = dateFormatter.string(from: endDate)
+    let currentTimeString = dateFormatter.string(from: now)
+    
+    // Create a unique identifier
+    let uuid = UUID().uuidString
+    
+    // Create the iCalendar content
+    let icsString = """
+    BEGIN:VCALENDAR
+    VERSION:2.0
+    PRODID:-//BusyApps//BusyCal 2025.2.1//EN
+    CALSCALE:GREGORIAN
+    BEGIN:VEVENT
+    DTSTART;VALUE=DATE:20250507
+    DTEND;VALUE=DATE:20250510
+    SUMMARY:New Banner
+    UID:1B6247EA-41BD-46EC-BF1F-1245972B682B
+    DTSTAMP:20250502T122901Z
+    CREATED:20250502T122856Z
+    TRANSP:TRANSPARENT
+    LAST-MODIFIED:20250502T122857Z
+    BEGIN:VALARM
+    UID:DF9A3EB9-ED15-4740-9514-1BAD68E34E2D
+    TRIGGER;VALUE=DURATION:-PT14H
+    X-BUSYMAC-DEFAULT-ALARM:TRUE
+    ACTION:AUDIO
+    ATTACH;VALUE=URI:Doors
+    END:VALARM
+    BEGIN:VALARM
+    UID:39236369-0FDB-48CE-9B29-D0161E73E863
+    TRIGGER;VALUE=DURATION:PT14H
+    X-BUSYMAC-DEFAULT-ALARM:TRUE
+    ACTION:AUDIO
+    ATTACH;VALUE=URI:Hero
+    END:VALARM
+    BEGIN:VALARM
+    UID:7D7E8502-8789-49BE-AAB0-AFFFAE4B9F83
+    TRIGGER;VALUE=DURATION:-PT6H
+    X-BUSYMAC-DEFAULT-ALARM:TRUE
+    ACTION:AUDIO
+    ATTACH;VALUE=URI:Doors
+    END:VALARM
+    END:VEVENT
+    END:VCALENDAR
+    """
+    
+    do {
+      // Create QR code document from the iCalendar string
+      let doc = try QRCode.Document(utf8String: icsString, errorCorrection: .high)
+      
+      // Customize appearance
+      doc.design.backgroundColor(CGColor(red: 0.95, green: 0.95, blue: 0.95, alpha: 1.0))
+      
+      // Set pixel shape (rounded squares)
+      doc.design.shape.onPixels = QRCode.PixelShape.RoundedPath(cornerRadiusFraction: 0.8)
+      
+      // Main QR color
+      doc.design.style.onPixels = QRCode.FillStyle.Solid(0.0, 0.4, 0.8, alpha: 1.0)
+      
+      // Eye styling
+      doc.design.shape.eye = QRCode.EyeShape.RoundedOuter()
+      doc.design.style.eye = QRCode.FillStyle.Solid(0.0, 0.4, 0.8, alpha: 1.0)
+      doc.design.style.pupil = QRCode.FillStyle.Solid(0.0, 0.4, 0.8, alpha: 1.0)
+      
+      // Add a calendar icon as logo
+      if let calendarImage = NSImage(named: "apple") {
+        doc.logoTemplate = QRCode.LogoTemplate(
+          image: calendarImage.cgImage(forProposedRect: nil, context: nil, hints: nil)!,
+          path: CGPath(ellipseIn: CGRect(x: 0.35, y: 0.35, width: 0.3, height: 0.3), transform: nil),
+          inset: 8
+        )
+      }
+      
+      // Assign to the QR code view
+      qrcodeView3.document = doc
+      
+      // Optionally export to file
+      let svgData = try doc.svg(dimension: 512)
+      try svgData.write(to: URL(string: "file:///tmp/calendar_event_qrcode.svg")!, atomically: true, encoding: .utf8)
+      
+      let pdfData = try doc.pdfData(dimension: 512)
+      try pdfData.write(to: URL(string: "file:///tmp/calendar_event_qrcode.pdf")!)
+      
+      // For easy testing with a phone, also save as PNG
+      if let cgImage = try? doc.cgImage(CGSize(width: 512, height: 512)) {
+        let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
+        if let pngData = bitmapRep.representation(using: .png, properties: [:]) {
+          try pngData.write(to: URL(string: "file:///tmp/calendar_event_qrcode.png")!)
+        }
+      }
+      
+      print("Calendar event QR code generated successfully!")
+    }
+    catch {
+      print("Error generating calendar event QR code: \(error)")
     }
   }
 }

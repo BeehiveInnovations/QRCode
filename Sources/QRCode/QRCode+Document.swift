@@ -33,6 +33,18 @@ public extension QRCode {
 				self.regenerateNoThrow()
 			}
 		}
+    
+    
+    /// Returns true if the document has no meaningful content
+    /// Both data and utf8String are checked to determine if the document is empty
+    @objc var isEmpty: Bool {
+      switch self.content {
+        case .text(let text):
+          return text.isEmpty
+        case .data(let data):
+          return data.isEmpty
+      }
+    }
 
 		/// Binary data to display in the QR code
 		@objc public var data: Data? {

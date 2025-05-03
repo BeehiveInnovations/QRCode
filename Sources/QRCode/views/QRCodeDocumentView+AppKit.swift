@@ -31,6 +31,12 @@ import AppKit
 /// This view provides background loading functionality so if the QRCode document is complex,
 /// a spinner will display until the content is ready.
 @objc public class QRCodeDocumentView: NSView {
+	/// Callback type for when the QR code image is updated
+	public typealias ImageUpdatedCallback = (_ image: NSImage?) -> Void
+	
+	/// Callback triggered when the QR code image is updated
+	@objc public var imageUpdatedHandler: ImageUpdatedCallback?
+	
 	/// The document to display
 	@IBOutlet public var document: QRCode.Document? {
 		didSet {
@@ -117,6 +123,7 @@ private extension QRCodeDocumentView {
 		// Generate the image on a background thread to make the UI more responsive
 		let workItem = DispatchWorkItem { [weak self] in
 			if
+        !(document?.isEmpty ?? true),
 				let data = try? document?.pdfData(dimension: 512),
 				let image = NSImage(data: data)
 			{
@@ -138,6 +145,9 @@ private extension QRCodeDocumentView {
 			self.imageLayer.contents = image
 			self.imageLayer.opacity = 1.0
 			self.progressView.stopAnimation(self)
+			
+			// Notify that the image has been updated
+			self.imageUpdatedHandler?(image)
 		}
 	}
 

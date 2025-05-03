@@ -28,6 +28,11 @@ import UIKit
 
 /// Very simple QRCode view for displaying a document. No other functionality is provided
 @objc public class QRCodeDocumentView: UIView {
+	/// Callback type for when the QR code is drawn
+	public typealias ImageUpdatedCallback = () -> Void
+	
+	/// Callback triggered when the QR code is drawn
+	@objc public var imageUpdatedHandler: ImageUpdatedCallback?
 
 	@objc public init(document: QRCode.Document = QRCode.Document()) {
 		self.document = document
@@ -58,6 +63,9 @@ public extension QRCodeDocumentView {
 	override func draw(_ rect: CGRect) {
 		if let ctx = UIGraphicsGetCurrentContext() {
 			self.document?.draw(ctx: ctx, rect: self.bounds)
+			
+			// Notify that the QR code has been drawn
+			self.imageUpdatedHandler?()
 		}
 	}
 }
